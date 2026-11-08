@@ -1,0 +1,7 @@
+# 密钥文件，绝对不能提交
+.env
+
+# Python 运行产物
+__pycache__/
+*.pyc
+.venv/

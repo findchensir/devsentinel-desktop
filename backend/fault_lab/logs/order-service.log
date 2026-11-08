@@ -1,0 +1,8 @@
+2026-11-05 14:50:03 INFO  [pool] connection pool resized: max=5 (was 50)
+2026-11-05 15:02:11 WARN  [order-api] slow request /api/orders took 3200ms
+2026-11-05 15:03:41 ERROR [pool] Connection pool exhausted: active=5/5, waiters=23
+2026-11-05 15:03:42 ERROR [order-api] GET /api/orders/8842 failed: timeout acquiring connection
+2026-11-05 15:03:45 ERROR [order-api] POST /api/orders failed: timeout acquiring connection
+2026-11-05 15:05:10 ERROR [order-api] GET /api/orders/9901 failed: timeout acquiring connection
+2026-11-05 15:06:22 WARN  [health] readiness probe failing intermittently
+2026-11-05 15:10:33 ERROR [pool] Connection pool exhausted: active=5/5, waiters=41
