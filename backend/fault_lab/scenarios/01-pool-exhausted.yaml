@@ -1,0 +1,12 @@
+id: pool-exhausted
+title: 高峰期下单大面积超时
+symptom: "15:00 起 POST /orders 大量 503，响应从 ~50ms 涨到 8s+"
+log_file: "logs/01-pool-exhausted.log"
+fault_commit: "783f100 (optimize pool config to reduce memory)"
+difficulty: easy
+root_cause: "src/db.py 中 POOL_MAX 从 10 被改为 1，并发请求拿不到连接，超时返回 503"
+evidence:
+  code: "src/db.py: POOL_MAX = 1"
+  log_pattern: "acquire connection timeout"
+suggested_fix: "POOL_MAX 恢复为 10 并按并发量评估"
+expected_path: "grep 日志见 timeout → 查 db.py/最近 commit → 定位 POOL_MAX"

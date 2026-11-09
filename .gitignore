@@ -3,3 +3,6 @@ interview/
 
 # 系统文件
 .DS_Store
+
+# 故障靶场：嵌套 git 仓库，独立管理
+backend/fault_lab/order-service/

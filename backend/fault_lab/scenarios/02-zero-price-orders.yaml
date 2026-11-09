@@ -1,0 +1,12 @@
+id: zero-price-orders
+title: item=3 订单金额全部为 0
+symptom: "用户反馈促销商品下单成功但金额为 0.00，其他商品正常"
+log_file: "logs/02-zero-price-orders.log"
+fault_commit: "976fe85 (fix discount for promo item)"
+difficulty: medium
+root_cause: "src/pricing.py 的 DISCOUNTS 中 item 3 的折扣被配成 0.0，total_price 计算出 0"
+evidence:
+  code: "src/pricing.py: DISCOUNTS = {..., 3: 0.0}"
+  log_pattern: "total=0.00"
+suggested_fix: "折扣恢复 0.8；加参数校验禁止 discount=0"
+expected_path: "日志发现 total=0.00 集中在 item=3 → 查 pricing.py → 定位 DISCOUNTS"

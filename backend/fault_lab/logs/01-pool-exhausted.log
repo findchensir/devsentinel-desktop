@@ -1,0 +1,10 @@
+2026-11-08 14:58:12 INFO order-service.db cache miss item=1
+2026-11-08 14:59:01 INFO order-service order created id=12 item=1 qty=2 total=178.20 cost=45ms
+2026-11-08 15:00:03 INFO order-service.db stock 100 -> 98 for item 1
+2026-11-08 15:00:11 ERROR order-service.db acquire connection timeout after 500ms
+2026-11-08 15:00:14 ERROR order-service.db acquire connection timeout after 500ms
+2026-11-08 15:00:19 INFO order-service.db stock 98 -> 96 for item 1
+2026-11-08 15:00:31 ERROR order-service.db acquire connection timeout after 500ms
+2026-11-08 15:00:44 INFO order-service order created id=13 item=1 qty=1 total=89.10 cost=8120ms
+2026-11-08 15:01:02 ERROR order-service.db acquire connection timeout after 500ms
+2026-11-08 15:01:15 ERROR order-service.db acquire connection timeout after 500ms

@@ -1,0 +1,12 @@
+id: silent-logs
+title: 服务异常但日志近乎空白
+symptom: "线上投诉故障，但 app.log 几小时只有一行，排查无从下手"
+log_file: "logs/04-silent-logs.log"
+fault_commit: "3ad531f (reduce log noise in prod)"
+difficulty: hard
+root_cause: "src/server.py logging level 从 INFO 调成 ERROR，所有 INFO 业务日志(下单/库存)被吞"
+evidence:
+  code: "src/server.py: level=logging.ERROR"
+  log_pattern: "日志体量骤降、INFO 全消失"
+suggested_fix: "恢复 INFO；分级用 log rotation 而不是降级"
+expected_path: "日志本身不可靠 → 必须查 git log 找最近变更 → 定位日志级别提交"

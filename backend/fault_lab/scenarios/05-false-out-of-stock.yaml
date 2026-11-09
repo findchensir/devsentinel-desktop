@@ -1,0 +1,12 @@
+id: false-out-of-stock
+title: 库存充足却提示 out of stock
+symptom: "所有商品下单都返回 400 out of stock，后台看库存明明有货"
+log_file: "logs/05-false-out-of-stock.log"
+fault_commit: "1dd632f (update stock check boundary)"
+difficulty: easy
+root_cause: "src/db.py dec_stock 判断方向写反：if stock >= qty 时 return False，有货反而拒绝"
+evidence:
+  code: "src/db.py: if stock >= qty: return False"
+  log_pattern: "日志没有任何 stock 扣减记录、没有 order created"
+suggested_fix: "改回 if stock < qty；补边界单测(stock==qty)"
+expected_path: "用户说有货但下单失败 → 日志无扣减 → 看 dec_stock 发现条件反了"

@@ -1,0 +1,12 @@
+id: request-hang
+title: 下单接口偶发挂起不返回
+symptom: "部分 POST /orders 请求一直 pending 不返回，无报错日志，重启后复现"
+log_file: "logs/03-request-hang.log"
+fault_commit: "98e6bb8 (add retry for db insert)"
+difficulty: medium
+root_cause: "src/db.py insert_order 包了 while True 无限重试，_insert_once 抛异常时永不退出且无退避"
+evidence:
+  code: "src/db.py: while True / except Exception → retry"
+  log_pattern: "订单创建后无 order created 日志 / 日志停在 stock 扣减"
+suggested_fix: "重试加上限(≤3)+指数退避；捕获具体异常"
+expected_path: "日志无异常但请求不返回 → 看 db.py 最近 commit → 发现 while True"

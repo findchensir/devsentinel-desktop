@@ -1,0 +1,4 @@
+2026-11-08 19:05:01 INFO order-service.db cache miss item=2
+2026-11-08 19:05:12 INFO order-service.db cache hit item=1 price=99.00
+2026-11-08 19:05:40 INFO order-service.db cache hit item=2 price=199.00
+2026-11-08 19:06:02 INFO order-service.db cache hit item=3 price=9.90

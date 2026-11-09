@@ -1,0 +1,5 @@
+2026-11-08 17:20:01 INFO order-service.db cache miss item=2
+2026-11-08 17:20:02 INFO order-service.db stock 50 -> 49 for item 2
+2026-11-08 17:20:31 INFO order-service.db stock 49 -> 48 for item 2
+2026-11-08 17:21:00 INFO order-service.db stock 48 -> 46 for item 2
+2026-11-08 17:22:14 INFO order-service.db stock 46 -> 45 for item 2
