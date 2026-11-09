@@ -14,6 +14,9 @@ EXTRACT_PROMPT = (
     "你是故障信息提取助手。从用户描述的报错/现象中提取结构化故障要素，"
     "以 JSON 输出。service 推断最可能的服务名（如 order-service、payment-service），"
     "severity 只能是 low/medium/high/critical。"
+    "keywords 用于在日志文件里做字符串检索：必须输出日志中可能出现的"
+    "英文术语/字段名/错误片段（如 timeout、total=、ERROR、pool exhausted、"
+    "0.00），不要输出中文描述词或完整长句；每个词尽量短，可给 4~8 个。"
 )
 
 # 第 3 步总结用的 system prompt

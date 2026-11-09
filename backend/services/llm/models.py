@@ -25,4 +25,6 @@ class FaultInfo(BaseModel):
     service: str = Field(description="故障服务名，如 order-service")
     error_type: str = Field(description="错误类型，如 timeout / 5xx / oom")
     severity: Literal["low", "medium", "high", "critical"] = Field(description="严重级别")
-    keywords: list[str] = Field(description="关键特征词，用于后续检索")
+    keywords: list[str] = Field(
+        description="用于日志字符串检索的短关键词：输出日志里可能出现的英文术语/字段名/错误片段（如 timeout、total=、0.00、ERROR），不要中文描述词"
+    )
