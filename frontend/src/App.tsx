@@ -147,6 +147,13 @@ const App: React.FC = () => {
           } else if (evt.type === 'step_result') {
             // 步骤产出（提取的要素 / 日志片段）：折叠显示在思考区
             setThinking((prev) => prev + `\n[${evt.name}] ${typeof evt.data === 'string' ? evt.data : JSON.stringify(evt.data)}\n`);
+          } else if (evt.type === 'tool_call') {
+            // Agent 决定调工具：输出区插标记，思考区记参数
+            setOutput((prev) => prev + `\n🔧 调用 ${evt.name}\n`);
+            setThinking((prev) => prev + `\n[tool_call] ${evt.name}(${JSON.stringify(evt.args)})\n`);
+          } else if (evt.type === 'tool_result') {
+            // 工具结果：折叠到思考区
+            setThinking((prev) => prev + `\n[tool_result] ${evt.name}: ${evt.result}\n`);
           }
         }
         if (finished) break;
@@ -177,6 +184,15 @@ const App: React.FC = () => {
       return;
     }
     send([{ role: 'user', content: prompt }], 'http://127.0.0.1:8000/api/agent/diagnose_workflow');
+  };
+
+  // Agent 诊断：模型自主决定调工具/停止（手写 Agent 循环）
+  const handleAgent = () => {
+    if (!prompt.trim()) {
+      setError({ code: 'input_required', message: '请输入故障描述', retryable: false });
+      return;
+    }
+    send([{ role: 'user', content: prompt }], 'http://127.0.0.1:8000/api/agent/diagnose_agent');
   };
 
   const handleDiagnose = () => {
@@ -294,6 +310,7 @@ const App: React.FC = () => {
           onStructured={handleStructuredDiagnose}
           onExtract={handleExtractFault}
           onWorkflow={handleWorkflow}
+          onAgent={handleAgent}
           mockError={mockError}
           onMockErrorChange={setMockError}
         />

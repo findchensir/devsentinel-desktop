@@ -11,6 +11,7 @@ export default function Toolbar(props: {
   onStructured: () => void;
   onExtract: () => void;
   onWorkflow: () => void;
+  onAgent: () => void;
   mockError: string;
   onMockErrorChange: (v: string) => void;
 }) {
@@ -44,6 +45,9 @@ export default function Toolbar(props: {
       </button>
       <button onClick={props.onWorkflow} disabled={props.loading} className={`bg-violet-600 hover:bg-violet-500 ${btn}`}>
         工作流诊断
+      </button>
+      <button onClick={props.onAgent} disabled={props.loading} className={`bg-fuchsia-600 hover:bg-fuchsia-500 ${btn}`}>
+        Agent 诊断
       </button>
       {/* 调试：故障注入。选一种错误码，后端直接返回对应错误，不用真把 DeepSeek 打挂 */}
       <select

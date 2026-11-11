@@ -2,3 +2,6 @@
 from .workflow import diagnose_workflow
 
 __all__ = ["diagnose_workflow"]
+from .loop import agent_loop
+
+__all__ += ["agent_loop"]

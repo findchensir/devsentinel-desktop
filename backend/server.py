@@ -17,7 +17,7 @@ from fastapi import HTTPException
 from services import llm
 # 引入错误分类层：LLMError 用于按类型捕获，translate 用于兜底未知异常
 from services.llm.errors import LLMError, translate
-from services.agent import diagnose_workflow
+from services.agent import diagnose_workflow, agent_loop
 
 from services.llm.models import FaultInfo
 
@@ -178,3 +178,18 @@ if __name__ == "__main__":
     # 使用uvicorn运行FastAPI应用，监听本地
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+# 手写 Agent 循环：模型自主决定调工具/何时停止，SSE 流式推送每步事件
+@app.post("/api/agent/diagnose_agent")
+async def diagnose_agent(req: ChatRequest):
+    user_input = next((m["content"] for m in reversed(req.messages) if m.get("role") == "user"), "")
+
+    async def gen():
+        try:
+            async for event in agent_loop(user_input):
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', **translate(e).to_dict()}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream")

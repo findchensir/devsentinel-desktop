@@ -51,6 +51,12 @@ export type StreamEvent =
   // 工作流步骤结果：某一步的产出（提取的要素 / grep 到的日志），前端可折叠展示
   | { type: 'step_result'; name: string; data: unknown }
 
+  // Agent 工具调用：模型决定调哪个工具、传什么参数
+  | { type: 'tool_call'; name: string; args: Record<string, unknown> }
+
+  // Agent 工具结果：工具执行返回的内容
+  | { type: 'tool_result'; name: string; result: string }
+
 // 结构化诊断结果：后端 DiagnosisResult 的镜像，前端按字段渲染卡片而不是整段文本
 export interface DiagnosisResult {
   root_cause: string;
