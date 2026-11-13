@@ -62,12 +62,18 @@ async def agent_loop(question: str, max_steps: int = 10) -> AsyncIterator[dict]:
             yield {"type": "content", "text": msg.content or ""}
             return
 
+        # 如果有 tool_calls 且有 content，则先输出思考
+        # 去除首尾空白，避免空行被误认为思考内容
+        thought = (msg.content or "").strip()
+        if msg.tool_calls and thought:
+            yield {"type": "thought", "text": thought}
+
         # 有 tool_calls → 先记"模型要调工具"，再逐个执行回填
         messages.append(msg)
         for tc in msg.tool_calls:
             sig = f"{tc.function.name}:{tc.function.arguments}"
             yield {"type": "tool_call", "name": tc.function.name,
-                   "args": tc.function.arguments}
+                   "args": tc.function.arguments, "id": tc.id}
 
             # 检测重复调用
             if sig in seen:
@@ -89,7 +95,7 @@ async def agent_loop(question: str, max_steps: int = 10) -> AsyncIterator[dict]:
                 fail_count[tc.function.name] = 0
 
             yield {"type": "tool_result", "name": tc.function.name,
-                   "result": result[:2000]}   # 截断保护，防单次结果爆上下文
+                   "result": result[:2000], "id": tc.id}   # 截断保护，防单次结果爆上下文
 
             messages.append({
                 "role": "tool",

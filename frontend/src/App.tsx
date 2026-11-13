@@ -6,6 +6,8 @@ import ThinkingBlock from './components/ThinkingBlock';
 import DiagnosisCard from './components/DiagnosisCard';
 import FaultCard from './components/FaultCard';
 import OutputPanel from './components/OutputPanel';
+import Timeline from './components/Timeline';
+import { applyEvent, finalizeSteps, isTimelineEvent, type TimelineStep } from './timeline';
 
 const App: React.FC = () => {
   const [prompt, setPrompt] = useState('');
@@ -30,6 +32,9 @@ const App: React.FC = () => {
   // 结构化诊断结果：独立状态，渲染成卡片而不是拼进 output 文本
   const [structured, setStructured] = useState<DiagnosisResult | null>(null);
 
+  // 排查时间线：step / tool_call / tool_result 等过程事件折叠成的步骤列表
+  const [steps, setSteps] = useState<TimelineStep[]>([]);
+
   // 用于取消请求
   const abortRef = useRef<AbortController | null>(null);
 
@@ -46,6 +51,7 @@ const App: React.FC = () => {
     setStructured(null);
     setFaultInfo(null);
     setThinking('');
+    setSteps([]);
 
     // ---------- 非流式 ----------
     if (!streamMode) {
@@ -123,7 +129,11 @@ const App: React.FC = () => {
 
           const evt = JSON.parse(raw) as StreamEvent;
           if (evt.type === 'done') { finished = true; break; }
-          if (evt.type === 'reasoning') {
+          // 过程事件统一交给时间线 reducer，不再拼进 output / thinking 文本
+          if (isTimelineEvent(evt)) {
+            setSteps((prev) => applyEvent(prev, evt));
+          }
+          else if (evt.type === 'reasoning') {
             setThinking((prev) => prev + evt.text);   // 打字机效果靠累积
           }
           else if (evt.type === 'content') {
@@ -141,19 +151,6 @@ const App: React.FC = () => {
             setError({ code: evt.code, message: evt.message, retryable: evt.retryable });
             finished = true;
             break;
-          } else if (evt.type === 'step') {
-            // 工作流走到哪一步：在输出里插一行步骤标记
-            setOutput((prev) => prev + `\n⚙ ${evt.label}\n`);
-          } else if (evt.type === 'step_result') {
-            // 步骤产出（提取的要素 / 日志片段）：折叠显示在思考区
-            setThinking((prev) => prev + `\n[${evt.name}] ${typeof evt.data === 'string' ? evt.data : JSON.stringify(evt.data)}\n`);
-          } else if (evt.type === 'tool_call') {
-            // Agent 决定调工具：输出区插标记，思考区记参数
-            setOutput((prev) => prev + `\n🔧 调用 ${evt.name}\n`);
-            setThinking((prev) => prev + `\n[tool_call] ${evt.name}(${JSON.stringify(evt.args)})\n`);
-          } else if (evt.type === 'tool_result') {
-            // 工具结果：折叠到思考区
-            setThinking((prev) => prev + `\n[tool_result] ${evt.name}: ${evt.result}\n`);
           }
         }
         if (finished) break;
@@ -174,6 +171,7 @@ const App: React.FC = () => {
       }
     } finally {
       setLoading(false);      // 流式没有 loading 自然结束的时机，在这里兜底
+      setSteps(finalizeSteps); // 不管正常结束、出错还是停止，都把没跑完的步骤 / 工具收尾
     }
   };
 
@@ -224,6 +222,7 @@ const App: React.FC = () => {
     setError(null);
     setLoading(true);
     setFaultInfo(null);
+    setSteps([]);
     try {
       const res = await fetch('http://127.0.0.1:8000/api/agent/diagnose_structured', {
         method: 'POST',
@@ -257,6 +256,7 @@ const App: React.FC = () => {
     setUsage(null);
     setError(null);
     setLoading(true);
+    setSteps([]);
     try {
       const res = await fetch('http://127.0.0.1:8000/api/agent/extract_fault', {
         method: 'POST',
@@ -306,6 +306,7 @@ const App: React.FC = () => {
             setStructured(null);
             setFaultInfo(null);
             setThinking('');
+            setSteps([]);
           }}
           onStructured={handleStructuredDiagnose}
           onExtract={handleExtractFault}
@@ -318,6 +319,8 @@ const App: React.FC = () => {
         {error && <ErrorBanner error={error} loading={loading} onRetry={handleRetry} />}
 
         <ThinkingBlock thinking={thinking} />
+
+        <Timeline steps={steps} />
 
         {structured && !faultInfo && <DiagnosisCard data={structured} usage={usage} />}
 
