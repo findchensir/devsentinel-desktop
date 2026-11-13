@@ -5,3 +5,6 @@
 __pycache__/
 *.pyc
 .venv/
+
+# 评测运行产物：每次跑 run_baseline.py 生成的原始数据，只留本地
+eval/runs/
