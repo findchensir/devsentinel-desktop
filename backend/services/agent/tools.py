@@ -206,3 +206,51 @@ def search_code(query: str, max_lines: int = 30) -> str:
     if len(out_lines) > max_lines:
         body = "\n".join(out_lines[:max_lines]) + f"\n... [已截断，共 {len(out_lines)} 行]"
     return f"[代码搜索: {query} | {hit_count} 处命中]\n{body}"
+
+
+REPO_DIR = LAB_DIR / "order-service"   # 靶场 git 仓库
+GIT_CONTEXT_LINES = 2
+
+
+def _git(args: list[str]) -> str:
+    """在靶场仓库执行 git 命令，输出统一截断。不允许任意参数——白名单子命令。"""
+    import subprocess
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(REPO_DIR), *args],
+            capture_output=True, text=True, timeout=10,
+        )
+    except subprocess.TimeoutExpired:
+        return "[错误] git 命令超时"
+    if out.returncode != 0:
+        return f"[错误] git {' '.join(args)}: {out.stderr.strip()[:300]}"
+    return out.stdout.strip()
+
+
+def git_log(max_count: int = 10) -> str:
+    """查看最近提交历史：每条一行 hash + 信息。
+
+    排查"最近改了什么"的第一步——对应 git log --oneline。
+    """
+    out = _git(["log", "--oneline", f"-{min(max_count, 30)}"])
+    if out.startswith("[错误]"):
+        return out
+    return f"[git log 最近 {max_count} 条]\n{out or '(空仓库)'}"
+
+
+def git_show(commit: str, max_lines: int = 80) -> str:
+    """查看某次提交的具体改动：diff 内容。
+
+    拿到 commit hash 后看"这次提交到底改了什么"——对应 git show。
+    """
+    # 只接受 7~40 位 hex，防止注入其他 git 参数
+    if not commit or not all(c in "0123456789abcdef" for c in commit.lower()) or not (4 <= len(commit) <= 40):
+        return f"[错误] 非法 commit: {commit!r}，应为 4~40 位 hex（如 783f100）"
+    out = _git(["show", "--stat", commit])
+    diff = _git(["show", "--format=%h %s%n%b", commit])
+    if diff.startswith("[错误]"):
+        return diff
+    lines = diff.splitlines()
+    if len(lines) > max_lines:
+        diff = "\n".join(lines[:max_lines]) + f"\n... [已截断，共 {len(lines)} 行]"
+    return f"[git show {commit}]\n{out}\n{diff}"

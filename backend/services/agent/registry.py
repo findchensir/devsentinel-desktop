@@ -10,7 +10,7 @@
 """
 from pydantic import BaseModel, Field, ValidationError
 
-from .tools import read_log, search_code
+from .tools import read_log, search_code, git_log, git_show
 
 
 # ---------- 参数模型：描述就是给模型看的工具说明 ----------
@@ -50,6 +50,17 @@ class SearchCodeArgs(BaseModel):
     )
 
 
+class GitLogArgs(BaseModel):
+    """git_log 的入参：看最近提交历史。"""
+    max_count: int = Field(default=10, description="最多看几条提交，默认 10")
+
+
+class GitShowArgs(BaseModel):
+    """git_show 的入参：看某次提交的具体改动。"""
+    commit: str = Field(description="commit hash，如 783f100（可从 git_log 结果获取）")
+    max_lines: int = Field(default=80, description="最多返回多少行 diff")
+
+
 # ---------- 注册表 ----------
 
 TOOL_REGISTRY: dict[str, dict] = {
@@ -62,6 +73,16 @@ TOOL_REGISTRY: dict[str, dict] = {
         "func": search_code,
         "args_model": SearchCodeArgs,
         "description": "在服务源码中搜索字符串，返回 文件:行号 + 上下文片段。定位代码证据/根因位置用",
+    },
+    "git_log": {
+        "func": git_log,
+        "args_model": GitLogArgs,
+        "description": "查看靶场仓库最近的提交历史（hash + 提交信息）。当日志/代码无法解释故障、怀疑是最近变更引入时用",
+    },
+    "git_show": {
+        "func": git_show,
+        "args_model": GitShowArgs,
+        "description": "查看某次提交的完整 diff。用 git_log 找到可疑提交后，用它确认具体改了哪行",
     },
 }
 

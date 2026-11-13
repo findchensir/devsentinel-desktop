@@ -24,6 +24,10 @@ async def agent_loop(question: str, max_steps: int = 10) -> AsyncIterator[dict]:
     """
     messages = [{"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": question}]
+    fail_count: dict[str, int] = {}   # 工具失败次数统计
+    seen: set[str] = set() # 检测重复调用
+    total_tokens = 0
+    TOKEN_BUDGET = 30000      # 单次请求预算
 
     for step in range(max_steps):          # 步数上限：防止死循环/烧钱
         yield {"type": "step", "name": f"round_{step + 1}",
@@ -35,6 +39,17 @@ async def agent_loop(question: str, max_steps: int = 10) -> AsyncIterator[dict]:
                 tools=tool_schemas(),
                 temperature=0.3,
             )
+            total_tokens += resp.usage.total_tokens if resp.usage else 0  # 每轮累计真实消耗
+            if total_tokens > TOKEN_BUDGET:
+                messages.append({"role": "system",
+                                 "content": "Token 使用已超过预算，请基于已有信息直接给结论，不要再调工具"})
+                # 不带 tools 的最后一次调用：强制模型收尾而不是继续调工具
+                resp = await client.chat.completions.create(
+                    model=provider.model, messages=messages, temperature=0.3)
+                yield {"type": "content",
+                       "text": f"[已达 token 预算 {TOKEN_BUDGET}]\n\n" + (resp.choices[0].message.content or "")}
+                return
+            
         except Exception as e:
             yield {"type": "error", "code": "llm_call_failed",
                    "message": str(e), "retryable": step + 1 < max_steps}
@@ -50,15 +65,28 @@ async def agent_loop(question: str, max_steps: int = 10) -> AsyncIterator[dict]:
         # 有 tool_calls → 先记"模型要调工具"，再逐个执行回填
         messages.append(msg)
         for tc in msg.tool_calls:
-            try:
-                args = json.loads(tc.function.arguments)
-            except json.JSONDecodeError:
-                args = {}
-                result = f"[错误] 工具参数不是合法 JSON: {tc.function.arguments}"
+            sig = f"{tc.function.name}:{tc.function.arguments}"
+            yield {"type": "tool_call", "name": tc.function.name,
+                   "args": tc.function.arguments}
+
+            # 检测重复调用
+            if sig in seen:
+                result = "[提示] 该工具已用相同参数调用过，请换策略或直接给结论"
             else:
-                yield {"type": "tool_call", "name": tc.function.name,
-                       "args": args}
-                result = call_tool(tc.function.name, args)
+                seen.add(sig)
+                try:
+                    args = json.loads(tc.function.arguments)
+                    result = call_tool(tc.function.name, args)
+                except json.JSONDecodeError:
+                    result = f"[错误] 工具参数不是合法 JSON: {tc.function.arguments}"
+
+            # 连续失败计数：错误也是 Observation，但失败多次要提示模型换思路
+            if result.startswith("[错误]"):
+                fail_count[tc.function.name] = fail_count.get(tc.function.name, 0) + 1
+                if fail_count[tc.function.name] >= 2:
+                    result += " 已多次失败，建议换其他工具或直接说明无法获取"
+            else:
+                fail_count[tc.function.name] = 0
 
             yield {"type": "tool_result", "name": tc.function.name,
                    "result": result[:2000]}   # 截断保护，防单次结果爆上下文

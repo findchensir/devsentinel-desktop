@@ -6,3 +6,6 @@ interview/
 
 # 故障靶场：嵌套 git 仓库，独立管理
 backend/fault_lab/order-service/
+
+# demo
+demo.py    
